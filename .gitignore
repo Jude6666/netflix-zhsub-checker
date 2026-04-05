@@ -1,0 +1,5 @@
+# Claude local settings (may contain API keys)
+.claude/
+
+# Node
+node_modules/

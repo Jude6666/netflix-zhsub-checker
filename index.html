@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Netflix Chinese Subtitle Checker</title>
+  <style>
+    :root {
+      --bg: #111;
+      --card: #1c1c1c;
+      --card2: #252525;
+      --accent: #e50914;
+      --text: #f0f0f0;
+      --muted: #888;
+      --border: #333;
+      --green: #27ae60;
+      --red: #c0392b;
+      --yellow: #d4ac0d;
+      --blue: #2980b9;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+    }
+    header p {
+      color: var(--muted);
+      margin-top: 6px;
+      font-size: 0.9rem;
+    }
+    header .logo {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 900;
+      font-size: 1.1rem;
+      padding: 2px 10px;
+      border-radius: 3px;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 10px 12px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .form-group textarea { resize: vertical; line-height: 1.6; }
+    .form-group small {
+      display: block;
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin-top: 5px;
+    }
+    .form-group small a { color: var(--blue); }
+
+    .row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .row .form-group { flex: 1; min-width: 200px; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      border-radius: 6px;
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+    /* Progress */
+    .progress-wrap { margin: 12px 0 4px; }
+    .progress-bar {
+      height: 6px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 99px;
+      transition: width 0.3s;
+      width: 0%;
+    }
+    .progress-label {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    /* Summary */
+    .summary-grid {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .summary-item {
+      flex: 1;
+      min-width: 100px;
+      background: var(--card2);
+      border-radius: 8px;
+      padding: 14px 16px;
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+    .summary-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .summary-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+    .summary-item.s-yes .summary-value { color: var(--green); }
+    .summary-item.s-no .summary-value { color: var(--red); }
+    .summary-item.s-unknown .summary-value { color: var(--yellow); }
+    .summary-item.s-error .summary-value { color: var(--muted); }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    thead th {
+      background: var(--card2);
+      color: var(--muted);
+      font-weight: 600;
+      text-align: left;
+      padding: 10px 12px;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+    }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+    tbody tr:hover { background: var(--card2); }
+    tbody td { padding: 10px 12px; vertical-align: middle; }
+
+    .row-yes     td:first-child { border-left: 3px solid var(--green); }
+    .row-other   td:first-child { border-left: 3px solid #e67e22; }
+    .row-no      td:first-child { border-left: 3px solid var(--red); }
+    .row-unknown td:first-child { border-left: 3px solid var(--yellow); }
+    .row-error   td:first-child { border-left: 3px solid var(--muted); }
+    .row-skipped { opacity: 0.45; }
+    .row-skipped td:first-child { border-left: 3px solid var(--border); }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 99px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .badge-yes { background: rgba(39,174,96,.2); color: var(--green); }
+    .badge-no { background: rgba(192,57,43,.2); color: #e74c3c; }
+    .badge-unknown { background: rgba(212,172,13,.2); color: var(--yellow); }
+    .badge-error { background: rgba(128,128,128,.15); color: var(--muted); }
+
+    /* Language badges */
+    .langs { display: flex; flex-wrap: wrap; gap: 4px; max-width: 280px; }
+    .lang-badge {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 99px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      white-space: nowrap;
+      border: 1px solid transparent;
+    }
+    .lang-badge.is-chinese { font-weight: 700; box-shadow: 0 0 0 1px currentColor; }
+
+    /* Country badges */
+    .countries { display: flex; flex-wrap: wrap; gap: 4px; max-width: 220px; }
+    .country-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      white-space: nowrap;
+      cursor: default;
+    }
+    .country-more {
+      font-size: 0.72rem;
+      color: var(--muted);
+      padding: 2px 4px;
+      align-self: center;
+    }
+
+    .score-high { color: var(--green); }
+    .score-mid { color: var(--yellow); }
+    .score-low { color: var(--red); }
+
+    .type-tag {
+      display: inline-block;
+      padding: 1px 8px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      background: var(--card2);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    a.nf-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+    a.nf-link:hover { text-decoration: underline; }
+
+    .err-msg { color: var(--muted); font-style: italic; }
+
+    .actions-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .tip {
+      background: rgba(41,128,185,.1);
+      border: 1px solid rgba(41,128,185,.3);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 0.82rem;
+      color: #7fb3d3;
+      line-height: 1.6;
+    }
+    .tip strong { color: var(--blue); }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.4rem; }
+      .card { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">N</div>
+    <h1>Chinese Subtitle Checker</h1>
+    <p>Bulk-check Chinese subtitle availability for Netflix titles via uNoGS API</p>
+  </header>
+
+  <!-- Config -->
+  <div class="card">
+    <h2>API Settings</h2>
+    <div class="row">
+      <div class="form-group">
+        <label>RapidAPI Key</label>
+        <input type="password" id="apiKey" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+               autocomplete="off" spellcheck="false">
+        <small>
+          Get one at <a href="https://rapidapi.com/unogs/api/unogsng" target="_blank">RapidAPI uNoGS</a>
+          &mdash; 100 requests/day on the free plan
+        </small>
+      </div>
+      <div class="form-group" style="max-width:200px">
+        <label>Request Interval (ms)</label>
+        <input type="number" id="delay" value="600" min="200" max="5000" step="100">
+        <small>Delay between API calls to avoid rate limiting</small>
+      </div>
+      <div class="form-group" style="max-width:180px">
+        <label>Min Match Score (%)</label>
+        <input type="number" id="minScore" value="60" min="0" max="100" step="5">
+        <small>Titles below this score are skipped (saves API quota)</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="card">
+    <h2>Title Input</h2>
+    <div class="form-group">
+      <label>Movie / Series titles (one per line) — numeric Netflix ID skips /search (saves 1 API call)</label>
+      <textarea id="titles" rows="10" placeholder="Inception&#10;Parasite 81274959&#10;81274959&#10;Your Name (60023642)&#10;Spirited Away"></textarea>
+    </div>
+    <div class="tip" style="margin-bottom:16px">
+      <strong>Tip:</strong> Using English titles improves match accuracy.
+      When multiple candidates exist, the one with the highest similarity score is selected automatically.
+      Each title uses at most 2 API calls: <code>/search</code> (match) + <code>/titlecountries</code> (subtitles &amp; countries). Titles below the min score use only 1 call.
+    </div>
+    <div class="controls">
+      <button class="btn btn-primary" id="startBtn" onclick="processAll()">&#9654; Start Check</button>
+      <button class="btn btn-secondary" id="cancelBtn" onclick="cancelProcessing()" style="display:none">&#9646;&#9646; Cancel</button>
+      <span id="apiCallCount" style="font-size:0.8rem;color:var(--muted)"></span>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="card" id="progressCard" style="display:none">
+    <h2>Processing</h2>
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-label" id="progressLabel">Preparing...</div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card" id="resultsCard" style="display:none">
+    <h2>Results</h2>
+    <div class="summary-grid" id="summaryGrid"></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Input Title</th>
+            <th>Matched Title</th>
+            <th>Year</th>
+            <th>Type</th>
+            <th>Match Score</th>
+            <th>Chinese Subs</th>
+            <th>Subtitle Languages</th>
+            <th>Available In</th>
+            <th>Netflix ID</th>
+            <th>Netflix</th>
+          </tr>
+        </thead>
+        <tbody id="resultsTbody"></tbody>
+      </table>
+    </div>
+    <div class="actions-row">
+      <button class="btn btn-success" onclick="exportCSV()">&#8681; Export CSV</button>
+      <button class="btn btn-secondary" onclick="clearResults()">Clear</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────
+let cancelled = false;
+let apiCallCount = 0;
+let results = [];
+
+// ── Chinese language variants ────────────────────────────
+// Single array managing detection keys, display labels, and colors
+// normalized: key that isChinese() matches against (after stripping parentheses)
+const CHINESE_VARIANTS = [
+  { normalized: 'chinese',              color: '#2ecc71', bg: 'rgba(46,204,113,.22)', label: 'Chinese'             },
+  { normalized: 'chinese simplified',   color: '#2ecc71', bg: 'rgba(46,204,113,.22)', label: 'Chinese (Simplified)' },
+  { normalized: 'chinese traditional',  color: '#27ae60', bg: 'rgba(39,174,96,.22)',  label: 'Chinese (Traditional)' },
+  { normalized: 'simplified chinese',   color: '#2ecc71', bg: 'rgba(46,204,113,.22)', label: 'Chinese (Simplified)' },
+  { normalized: 'traditional chinese',  color: '#27ae60', bg: 'rgba(39,174,96,.22)',  label: 'Chinese (Traditional)' },
+  { normalized: 'mandarin',             color: '#1abc9c', bg: 'rgba(26,188,156,.22)', label: 'Mandarin'            },
+  { normalized: 'cantonese',            color: '#16a085', bg: 'rgba(22,160,133,.22)', label: 'Cantonese'           },
+];
+
+// Auto-generated from CHINESE_VARIANTS — no manual maintenance needed
+const CHINESE_KEYS = new Set(CHINESE_VARIANTS.map(v => v.normalized));
+
+function normalizeLang(lang) {
+  return lang.toLowerCase().replace(/[()]/g, '').replace(/\s+/g, ' ').trim();
+}
+function isChinese(lang) {
+  return CHINESE_KEYS.has(normalizeLang(lang));
+}
+function getChineseMeta(lang) {
+  const n = normalizeLang(lang);
+  return CHINESE_VARIANTS.find(v => v.normalized === n) ?? CHINESE_VARIANTS[0];
+}
+
+// ── Language metadata ───────────────────────────────────
+// Chinese variants are auto-registered from CHINESE_VARIANTS; all others defined here
+const LANG_META_BASE = {
+  'japanese':            { color: '#5dade2', bg: 'rgba(52,152,219,.18)',  label: 'Japanese'   },
+  'english':             { color: '#aab7b8', bg: 'rgba(149,165,166,.18)', label: 'English'    },
+  'korean':              { color: '#bb8fce', bg: 'rgba(155,89,182,.18)',  label: 'Korean'     },
+  'spanish':             { color: '#f0b27a', bg: 'rgba(230,126,34,.18)',  label: 'Spanish'    },
+  'french':              { color: '#7fb3d3', bg: 'rgba(41,128,185,.18)',  label: 'French'     },
+  'german':              { color: '#f1948a', bg: 'rgba(231,76,60,.15)',   label: 'German'     },
+  'italian':             { color: '#82e0aa', bg: 'rgba(39,174,96,.13)',   label: 'Italian'    },
+  'portuguese':          { color: '#f8c471', bg: 'rgba(243,156,18,.18)',  label: 'Portuguese' },
+  'arabic':              { color: '#a9cce3', bg: 'rgba(93,173,226,.15)',  label: 'Arabic'     },
+  'thai':                { color: '#f9e79f', bg: 'rgba(212,172,13,.18)',  label: 'Thai'       },
+  'hindi':               { color: '#f48fb1', bg: 'rgba(233,30,99,.13)',   label: 'Hindi'      },
+  'dutch':               { color: '#85c1e9', bg: 'rgba(52,152,219,.13)',  label: 'Dutch'      },
+  'russian':             { color: '#aab7b8', bg: 'rgba(127,140,141,.18)', label: 'Russian'    },
+  'turkish':             { color: '#f0b27a', bg: 'rgba(211,84,0,.15)',    label: 'Turkish'    },
+  'polish':              { color: '#d2b4de', bg: 'rgba(155,89,182,.13)',  label: 'Polish'     },
+  'vietnamese':          { color: '#a9dfbf', bg: 'rgba(39,174,96,.13)',   label: 'Vietnamese' },
+  'indonesian':          { color: '#f1948a', bg: 'rgba(192,57,43,.13)',   label: 'Indonesian' },
+  'malay':               { color: '#a9dfbf', bg: 'rgba(22,160,133,.13)',  label: 'Malay'      },
+  'swedish':             { color: '#7fb3d3', bg: 'rgba(41,128,185,.13)',  label: 'Swedish'    },
+  'norwegian':           { color: '#7fb3d3', bg: 'rgba(52,73,94,.18)',    label: 'Norwegian'  },
+  'danish':              { color: '#f1948a', bg: 'rgba(192,57,43,.13)',   label: 'Danish'     },
+  'finnish':             { color: '#85c1e9', bg: 'rgba(52,152,219,.13)',  label: 'Finnish'    },
+  'greek':               { color: '#85c1e9', bg: 'rgba(41,128,185,.13)',  label: 'Greek'      },
+  'hebrew':              { color: '#d7bde2', bg: 'rgba(142,68,173,.13)',  label: 'Hebrew'     },
+};
+
+// Merge CHINESE_VARIANTS into LANG_META (keyed by normalized string)
+const LANG_META = { ...LANG_META_BASE };
+for (const v of CHINESE_VARIANTS) {
+  LANG_META[v.normalized] = { color: v.color, bg: v.bg, label: v.label };
+}
+
+function getLangMeta(lang) {
+  const key = normalizeLang(lang);
+  return LANG_META[key] ?? { color: '#95a5a6', bg: 'rgba(127,140,141,.13)', label: lang };
+}
+
+// ── Helpers ────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Jaccard token similarity + length ratio
+function similarity(a, b) {
+  const norm = s => s.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  a = norm(a); b = norm(b);
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  const ta = new Set(a.split(' ').filter(Boolean));
+  const tb = new Set(b.split(' ').filter(Boolean));
+  const inter = [...ta].filter(t => tb.has(t)).length;
+  const union = new Set([...ta, ...tb]).size;
+  const jaccard = union > 0 ? inter / union : 0;
+  const lenRatio = Math.min(a.length, b.length) / Math.max(a.length, b.length);
+  return jaccard * 0.75 + lenRatio * 0.25;
+}
+
+function findBestMatch(query, items) {
+  if (!items || !items.length) return null;
+  let best = null, bestScore = -1;
+  for (const item of items) {
+    const t = item.title || item.show_title || item.showtitle || '';
+    const s = similarity(query, t);
+    if (s > bestScore) { bestScore = s; best = item; }
+  }
+  return best ? { item: best, score: bestScore } : null;
+}
+
+// Parse comma/semicolon-separated lang string, strip bracketed notes like [Original]
+function parseLangStr(str) {
+  if (!str) return [];
+  return String(str)
+    .split(/[,;]/)
+    .map(s => s.replace(/\[.*?\]/g, '').trim())
+    .filter(Boolean);
+}
+
+// ── API ────────────────────────────────────────────────
+const HOST = 'unogsng.p.rapidapi.com';
+
+async function apiGet(path, params, apiKey) {
+  const url = new URL(`https://${HOST}${path}`);
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
+  }
+  apiCallCount++;
+  document.getElementById('apiCallCount').textContent = `API Calls: ${apiCallCount}`;
+
+  const res = await fetch(url.toString(), {
+    headers: { 'X-RapidAPI-Key': apiKey, 'X-RapidAPI-Host': HOST }
+  });
+
+  if (res.status === 429) throw new Error('Rate limit hit (429) — please wait and try again');
+  if (res.status === 403) throw new Error('Invalid API key (403) — check your RapidAPI key');
+  if (!res.ok) throw new Error(`API error ${res.status}: ${res.statusText}`);
+
+  const data = await res.json();
+  const items = data.results ?? data.ITEMS ?? data.Results ?? [];
+  return { raw: data, items };
+}
+
+// ── Core logic ─────────────────────────────────────────
+async function checkOneTitle(inputTitle, apiKey, delayMs, minScore) {
+  // Extract numeric ID from input (pure number or mixed title+ID)
+  const idMatch = inputTitle.match(/\b(\d{5,10})\b/);
+  const isDirectId = idMatch !== null;
+
+  if (isDirectId) {
+    const netflixId = idMatch[1];
+    // Use the non-numeric part as the title (e.g. "Wicked 82022339" → "Wicked")
+    const matchedTitle = inputTitle.replace(idMatch[0], '').replace(/[()[\]]/g, '').trim();
+
+    return await fetchSubtitleData({
+      inputTitle, netflixId, matchedTitle, year: '', type: '', score: 1,
+      apiKey, delayMs, clistCountries: []
+    });
+  }
+
+  // Step 1: search for title
+  let searchRes;
+  try {
+    searchRes = await apiGet('/search', { query: inputTitle, limit: 10 }, apiKey);
+  } catch (e) {
+    return { inputTitle, status: 'error', error: e.message };
+  }
+
+  await sleep(delayMs);
+  if (cancelled) return null;
+
+  if (!searchRes.items.length) {
+    return { inputTitle, status: 'not_found', error: 'No results found' };
+  }
+
+  const match = findBestMatch(inputTitle, searchRes.items);
+  if (!match) return { inputTitle, status: 'not_found', error: 'No match found' };
+
+  const { item, score } = match;
+
+  // Low confidence match → skip subtitle API calls to save quota
+  if (score < (minScore ?? 0.6)) {
+    const netflixIdFast = String(item.nfid ?? item.id ?? '');
+    const matchedTitleFast = item.title || item.show_title || '';
+    return {
+      inputTitle,
+      status: 'skipped',
+      matchedTitle: matchedTitleFast,
+      netflixId: netflixIdFast,
+      year: String(item.released ?? item.year ?? ''),
+      type: item.type ?? item.vtype ?? '',
+      score,
+      hasChinese: null,
+      subtitleLangs: [],
+      chineseCountries: [],
+      allCountries: [],
+    };
+  }
+
+  // Field confirmed from API: 'id' is the uNoGS row id, 'nfid' is the Netflix title ID
+  const netflixId = String(item.nfid ?? item.id ?? item.netflixid ?? item.Netflix_id ?? item.show_id ?? '');
+  console.log('[netflixId]', netflixId, '| fields:', { id: item.id, nfid: item.nfid });
+
+  // Parse clist (available countries) from search result — no extra API call needed
+  let clistCountries = [];
+  try {
+    const raw = item.clist ?? '';
+    if (raw) {
+      const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      clistCountries = Object.entries(obj).map(([code, name]) => ({
+        code: String(code).trim(),
+        name: String(name).trim(),
+        subs: [], auds: []
+      }));
+    }
+  } catch (e) { console.warn('clist parse failed', e); }
+
+  const matchedTitle = item.title || item.show_title || item.showtitle || '';
+  const year  = item.released ?? item.year ?? item.show_year ?? '';
+  const type  = item.type ?? item.vtype ?? item.show_type ?? '';
+
+  return await fetchSubtitleData({
+    inputTitle, netflixId, matchedTitle, year, type, score,
+    apiKey, delayMs, clistCountries
+  });
+}
+
+async function fetchSubtitleData({ inputTitle, netflixId, matchedTitle, year, type, score, apiKey, delayMs, clistCountries }) {
+  let subtitleLangs    = [];
+  let chineseCountries = [];
+  let allCountries     = clistCountries ?? [];
+  let hasChinese = null;
+
+  if (netflixId) {
+    try {
+      const ctryRes = await apiGet('/titlecountries', { netflixid: netflixId }, apiKey);
+      await sleep(delayMs);
+      if (cancelled) return null;
+
+      const subSet = new Set();
+      const enriched = [];
+      for (const row of ctryRes.items) {
+        const code = row.ccode ?? row.country_code ?? row.cc ?? '';
+        const name = row.country ?? row.cname ?? row.country_name ?? code;
+        const subField = row.subtitle ?? row.subtitles ?? row.sub ?? row.subs ?? '';
+        const audField = row.audio    ?? row.audios    ?? row.aud ?? row.auds ?? '';
+        const subs = parseLangStr(subField);
+        const auds = parseLangStr(audField);
+        subs.forEach(l => subSet.add(l));
+        if (!subField && audField) auds.forEach(l => subSet.add(l));
+        if (code || name) enriched.push({ code, name, subs, auds });
+      }
+      if (enriched.length > 0) allCountries = enriched;
+      chineseCountries = allCountries.filter(c => c.subs.some(l => isChinese(l)));
+      if (subSet.size > 0) {
+        subtitleLangs = [...subSet];
+        hasChinese = subtitleLangs.some(l => isChinese(l));
+      }
+    } catch (e) {
+      console.warn('titlecountries failed:', e.message);
+    }
+  }
+
+  return {
+    inputTitle,
+    status: 'found',
+    matchedTitle,
+    netflixId,
+    year: String(year),
+    type,
+    score,
+    hasChinese,
+    subtitleLangs,
+    chineseCountries,
+    allCountries,
+  };
+}
+
+// ── Main process ───────────────────────────────────────
+async function processAll() {
+  const apiKey = (document.getElementById('apiKey').value || '').trim();
+  if (!apiKey) { alert('Please enter your RapidAPI key'); return; }
+
+  const raw = (document.getElementById('titles').value || '').trim();
+  if (!raw) { alert('Please enter at least one title'); return; }
+
+  const titles = raw.split('\n').map(t => t.trim()).filter(Boolean);
+  if (!titles.length) { alert('No valid titles found'); return; }
+
+  const delayMs  = Math.max(200, parseInt(document.getElementById('delay').value, 10) || 600);
+  const minScore = parseInt(document.getElementById('minScore').value, 10) / 100 || 0.6;
+
+  localStorage.setItem('unogsApiKey', apiKey);
+  localStorage.setItem('unogsDelay',    String(delayMs));
+  localStorage.setItem('unogsMinScore', String(parseInt(document.getElementById('minScore').value, 10)));
+
+  cancelled = false;
+  apiCallCount = 0;
+  results = [];
+
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('cancelBtn').style.display = 'inline-flex';
+  document.getElementById('cancelBtn').disabled = false;
+  document.getElementById('progressCard').style.display = 'block';
+  document.getElementById('resultsCard').style.display = 'none';
+  document.getElementById('apiCallCount').textContent = '';
+
+  for (let i = 0; i < titles.length; i++) {
+    if (cancelled) break;
+    setProgress(i, titles.length, titles[i]);
+
+    const result = await checkOneTitle(titles[i], apiKey, delayMs, minScore);
+    if (result) { results.push(result); renderTable(); }
+
+    if (result?.error?.includes('Invalid API key')) break;
+  }
+
+  setProgress(titles.length, titles.length, cancelled ? 'Cancelled' : 'Done');
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('cancelBtn').style.display = 'none';
+  document.getElementById('resultsCard').style.display = 'block';
+  renderSummary();
+}
+
+function cancelProcessing() {
+  cancelled = true;
+  document.getElementById('progressLabel').textContent = 'Cancelling...';
+  document.getElementById('cancelBtn').disabled = true;
+}
+
+// ── UI helpers ─────────────────────────────────────────
+function setProgress(done, total, label) {
+  const pct = total > 0 ? (done / total) * 100 : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent =
+    done < total ? `Processing ${done + 1}/${total}: ${label}` : `Done ${done}/${total}`;
+}
+
+// Convert 2-letter country code to flag emoji
+function countryFlag(code) {
+  if (!code || code.length !== 2) return '';
+  try {
+    return [...code.toUpperCase()].map(c =>
+      String.fromCodePoint(c.charCodeAt(0) + 0x1F1A5)
+    ).join('');
+  } catch { return ''; }
+}
+
+// Country name map for common codes
+const COUNTRY_NAMES = {
+  US:'USA',         GB:'UK',          JP:'Japan',       KR:'Korea',       HK:'Hong Kong',   TW:'Taiwan',
+  SG:'Singapore',   AU:'Australia',   CA:'Canada',      FR:'France',      DE:'Germany',
+  IT:'Italy',       ES:'Spain',       MX:'Mexico',      BR:'Brazil',      IN:'India',
+  TH:'Thailand',    MY:'Malaysia',    PH:'Philippines', ID:'Indonesia',   VN:'Vietnam',
+  NL:'Netherlands', SE:'Sweden',      NO:'Norway',      DK:'Denmark',     FI:'Finland',
+  PL:'Poland',      TR:'Turkey',      AR:'Argentina',   CO:'Colombia',    CL:'Chile',
+  ZA:'South Africa',EG:'Egypt',       IL:'Israel',      PT:'Portugal',    BE:'Belgium',
+  CH:'Switzerland', AT:'Austria',     NZ:'New Zealand', RU:'Russia',
+};
+
+function buildCountryBadges(countries, maxShow) {
+  if (!countries || !countries.length) return '<span style="color:var(--muted)">—</span>';
+  const MAX = maxShow ?? 8;
+  const shown = countries.slice(0, MAX);
+  const rest  = countries.length - MAX;
+  let html = '<div class="countries">';
+  html += shown.map(c => {
+    const flag = countryFlag(c.code);
+    const name = COUNTRY_NAMES[c.code?.toUpperCase()] ?? c.name ?? c.code;
+    return `<span class="country-badge" title="${esc(name)}">${flag} ${esc(c.code || c.name)}</span>`;
+  }).join('');
+  if (rest > 0) html += `<span class="country-more">+${rest} more</span>`;
+  html += '</div>';
+  return html;
+}
+
+function buildLangBadges(langs) {
+  if (!langs || !langs.length) return '<span style="color:var(--muted);font-size:.8rem">—</span>';
+  // Sort: Chinese first, then alphabetical
+  const sorted = [...langs].sort((a, b) => {
+    const ac = isChinese(a) ? 0 : 1;
+    const bc = isChinese(b) ? 0 : 1;
+    return ac !== bc ? ac - bc : a.localeCompare(b);
+  });
+  return '<div class="langs">' + sorted.map(lang => {
+    const m = getLangMeta(lang);
+    const chinClass = isChinese(lang) ? ' is-chinese' : '';
+    return `<span class="lang-badge${chinClass}" style="background:${m.bg};color:${m.color}">${esc(m.label)}</span>`;
+  }).join('') + '</div>';
+}
+
+function renderTable() {
+  const tbody = document.getElementById('resultsTbody');
+  tbody.innerHTML = '';
+  results.forEach((r, i) => {
+    const tr = document.createElement('tr');
+
+    if (r.status === 'error' || r.status === 'not_found') {
+      tr.className = 'row-error';
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${esc(r.inputTitle)}</td>
+        <td colspan="6" class="err-msg">${esc(r.error || 'Error')}</td>
+        <td>—</td><td>—</td><td>—</td><td>—</td>`;
+    } else if (r.status === 'skipped') {
+      const scoreClass = r.score >= 0.45 ? 'score-mid' : 'score-low';
+      const scorePct   = Math.round((r.score ?? 0) * 100);
+      const nfUrl      = r.netflixId ? `https://www.netflix.com/title/${r.netflixId}` : null;
+      tr.className = 'row-skipped';
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${esc(r.inputTitle)}</td>
+        <td>${esc(r.matchedTitle)}</td>
+        <td>${esc(r.year)}</td>
+        <td><span class="type-tag">${esc(r.type || '—')}</span></td>
+        <td><span class="${scoreClass}">${scorePct}%</span></td>
+        <td colspan="3" class="err-msg">Skipped: low match score</td>
+        <td>${esc(r.netflixId)}</td>
+        <td>${nfUrl ? `<a class="nf-link" href="${esc(nfUrl)}" target="_blank">Open ↗</a>` : '—'}</td>`;
+    } else {
+      const hasOther = r.subtitleLangs && r.subtitleLangs.length > 0;
+      const rowClass =
+        r.hasChinese === true              ? 'row-yes'     :
+        r.hasChinese === false && hasOther ? 'row-other'   :
+        r.hasChinese === false             ? 'row-no'      : 'row-unknown';
+
+      const badgeClass =
+        r.hasChinese === true  ? 'badge-yes'     :
+        r.hasChinese === false ? 'badge-no'      : 'badge-unknown';
+      const badgeText =
+        r.hasChinese === true  ? '✓ Yes'     :
+        r.hasChinese === false ? '✗ No'      : '? Unknown';
+
+      const scoreClass = r.score >= 0.75 ? 'score-high' : r.score >= 0.45 ? 'score-mid' : 'score-low';
+      const scorePct   = Math.round((r.score ?? 0) * 100);
+      const nfUrl      = r.netflixId ? `https://www.netflix.com/title/${r.netflixId}` : null;
+      const typeLabel  = String(r.type || '').toLowerCase();
+
+      // If Chinese subs exist, show countries with Chinese; otherwise show all countries
+      const countryList = r.hasChinese ? r.chineseCountries : r.allCountries;
+
+      tr.className = rowClass;
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${esc(r.inputTitle)}</td>
+        <td>${esc(r.matchedTitle)}</td>
+        <td>${esc(r.year)}</td>
+        <td><span class="type-tag">${esc(typeLabel || '—')}</span></td>
+        <td><span class="${scoreClass}">${scorePct}%</span></td>
+        <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+        <td>${buildLangBadges(r.subtitleLangs)}</td>
+        <td>${buildCountryBadges(countryList)}</td>
+        <td><span style="font-size:.8rem;color:var(--muted);font-family:monospace">${esc(r.netflixId || '—')}</span></td>
+        <td>${nfUrl ? `<a class="nf-link" href="${esc(nfUrl)}" target="_blank">Open ↗</a>` : '—'}</td>`;
+    }
+    tbody.appendChild(tr);
+  });
+  document.getElementById('resultsCard').style.display = 'block';
+}
+
+function renderSummary() {
+  const total   = results.length;
+  const yes     = results.filter(r => r.hasChinese === true).length;
+  const other   = results.filter(r => r.hasChinese === false && r.subtitleLangs?.length > 0).length;
+  const no      = results.filter(r => r.hasChinese === false && !r.subtitleLangs?.length).length;
+  const skipped = results.filter(r => r.status === 'skipped').length;
+  const err     = results.filter(r => r.status === 'error' || r.status === 'not_found').length;
+
+  document.getElementById('summaryGrid').innerHTML = `
+    <div class="summary-item">
+      <div class="summary-value">${total}</div><div class="summary-label">Total</div></div>
+    <div class="summary-item s-yes">
+      <div class="summary-value">${yes}</div><div class="summary-label">Chinese Subs</div></div>
+    <div class="summary-item" style="border-color:#e67e22">
+      <div class="summary-value" style="color:#e67e22">${other}</div>
+      <div class="summary-label">No Chinese, Other Subs</div></div>
+    <div class="summary-item s-no">
+      <div class="summary-value">${no}</div><div class="summary-label">No Subs</div></div>
+    <div class="summary-item s-unknown">
+      <div class="summary-value">${skipped}</div><div class="summary-label">Skipped (Low Score)</div></div>
+    <div class="summary-item s-error">
+      <div class="summary-value">${err}</div><div class="summary-label">Not Found / Error</div></div>`;
+}
+
+function clearResults() {
+  results = [];
+  document.getElementById('resultsTbody').innerHTML = '';
+  document.getElementById('resultsCard').style.display = 'none';
+  document.getElementById('progressCard').style.display = 'none';
+  apiCallCount = 0;
+  document.getElementById('apiCallCount').textContent = '';
+}
+
+function exportCSV() {
+  const BOM = '\uFEFF';
+  const headers = ['#', 'Input Title', 'Matched Title', 'Year', 'Type', 'Match Score (%)', 'Chinese Subs', 'Subtitle Languages', 'Available In', 'Netflix ID'];
+  const rows = results.map((r, i) => {
+    const countryList = r.hasChinese ? r.chineseCountries : r.allCountries;
+    const countryCodes = (countryList || []).map(c => c.code || c.name).join(' / ');
+    return [
+      i + 1,
+      r.inputTitle,
+      r.matchedTitle || '',
+      r.year || '',
+      r.type || '',
+      r.score != null ? Math.round(r.score * 100) : '',
+      r.hasChinese === true ? 'Yes' : r.hasChinese === false ? 'No' : r.status !== 'found' ? 'Error' : 'Unknown',
+      (r.subtitleLangs || []).join(' / '),
+      countryCodes,
+      r.netflixId || ''
+    ];
+  });
+
+  const csv = BOM + [headers, ...rows]
+    .map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
+    .join('\r\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob),
+    download: `netflix_chinese_subs_${new Date().toISOString().slice(0, 10)}.csv`
+  });
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ── Init ───────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const k = localStorage.getItem('unogsApiKey');
+  const d = localStorage.getItem('unogsDelay');
+  const s = localStorage.getItem('unogsMinScore');
+  if (k) document.getElementById('apiKey').value = k;
+  if (d) document.getElementById('delay').value = d;
+  if (s) document.getElementById('minScore').value = s;
+});
+</script>
+</body>
+</html>
